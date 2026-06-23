@@ -1,0 +1,28 @@
+# Compiled binaries
+/jury
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.*
+
+# GoReleaser build output
+/dist/
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
