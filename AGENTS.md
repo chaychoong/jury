@@ -78,14 +78,26 @@ The system deliberately splits across two runtimes — keep the boundary intact:
   latest record per `run_id`).
 - `JURY_HOME` overrides `~/.claude` (used by tests for isolation).
 
-## Known gaps (surfaced by the jury reviewing its own code; not yet fixed)
+## Hardening notes (resolved — keep them that way)
 
-- `SetSlotStatus` is a read-modify-write race under concurrent slots
-  (`core/run.go`) — needs atomic write + rename + lock, or per-slot result files.
-- Material is validated at `start-run` but the stored path is trusted at dispatch
-  — revalidate inside `RunJuror`.
-- `run-juror` calls `os.Exit(1)` inside cobra `RunE`, bypassing cleanup and making
-  the failure path hard to test — return an error and let `fang` set the code.
-- Score-log append is only atomic for small records — `flock` if multi-writer
-  becomes real.
-- Run ID is path-joined without format validation — guard `--run ../..`.
+An early round of the jury reviewing its own code surfaced five gaps; all are now
+fixed. They're documented here so the protections aren't accidentally regressed:
+
+- **Concurrent run-file writes.** `SetSlotStatus` takes an exclusive advisory lock
+  (`withFileLock`, `core/flock.go`) around the read-modify-write and rewrites the
+  file atomically (temp + rename, `core/run.go`), so parallel slots can't drop
+  each other's status updates.
+- **Dispatch-time material revalidation.** `RunJuror` re-canonicalizes and
+  re-validates the stored material path right before exec (`core/dispatch.go`),
+  closing the start-run→dispatch TOCTOU window.
+- **No `os.Exit` inside `RunE`.** `run-juror` returns a `jurorFailedError`
+  sentinel; `main` recognizes it to exit non-zero without `fang` printing over the
+  raw marker, so the failure path runs cleanup and stays testable
+  (`cmd/jury/main.go`).
+- **Atomic score-log append.** `AppendScoreRecord` holds an advisory lock around
+  open+write (`core/score.go`), so concurrent `jury score` runs can't tear lines.
+- **Run-ID validation.** `ValidateRunID` enforces `^[0-9]+-[a-z0-9]+$`
+  (`core/paths.go`) before any path join, rejecting traversal like `--run ../..`.
+
+The locking uses `flock(2)` and is therefore unix-only (`core/flock.go` is
+`//go:build unix`); `jury` targets Linux and macOS.
