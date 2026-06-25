@@ -2,6 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+//go:build unix
+
+// Advisory file locking via flock(2). Unix-only by design — `jury` targets
+// Linux and macOS; there is no Windows build.
+
 package core
 
 import (

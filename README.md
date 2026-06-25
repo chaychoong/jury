@@ -69,31 +69,42 @@ runs with read-only tools.
 
 ## Quickstart
 
-**Prerequisites:** Go 1.26+ (to build) and [Claude Code](https://www.claude.com/product/claude-code) (for the `/jury` workflow).
+**Prerequisite:** [Claude Code](https://www.claude.com/product/claude-code) (for the `/jury` command). No Go toolchain needed unless you build from source.
 
-**1. Build the binary**
+**1. Install the `jury` binary** (pick one):
 
 ```bash
-go build -o ~/.local/bin/jury ./cmd/jury
+# install script (Linux/macOS) — downloads the latest release to ~/.local/bin
+curl -fsSL https://raw.githubusercontent.com/chaychoong/jury/main/scripts/install.sh | sh
+
+# or Homebrew
+brew install --cask chaychoong/tap/jury
+
+# or from source (needs Go 1.26+)
+go install github.com/chaychoong/jury/cmd/jury@latest
+```
+
+Make sure it's on your PATH, then seed the roster:
+
+```bash
 jury list            # seeds ~/.claude/jury/jurors.toml with the default roster
 ```
 
-**2. Install the workflow** so Claude Code gets a `/jury` command:
+**2. Install the plugin** so Claude Code gets the `/jury` command:
 
-```bash
-cp workflows/jury.js ~/.claude/workflows/jury.js
 ```
-> The example workflow hard-codes the binary path (`~/.local/bin/jury`) and the
-> runs directory. If your `$HOME` differs, adjust those constants near the top.
+/plugin marketplace add chaychoong/jury
+/plugin install jury@jury
+```
+> Prefer not to use the plugin? Install the workflow file directly instead:
+> `curl -fsSL https://raw.githubusercontent.com/chaychoong/jury/main/plugin/workflows/jury.js -o ~/.claude/workflows/jury.js`
 
 **3. Allow the binary** in `~/.claude/settings.json` (so the workflow may run it
 — the child `pi`/`codex` it spawns are subprocesses, not separately gated):
 
 ```json
-{ "permissions": { "allow": ["Bash(<your-home>/.local/bin/jury:*)"] } }
+{ "permissions": { "allow": ["Bash(jury:*)"] } }
 ```
-> Use your absolute home path — `/Users/<you>` on macOS, `/home/<you>` on Linux —
-> so it matches the resolved command the workflow invokes.
 
 **4. Give the jurors their backends** (see the registry, `~/.claude/jury/jurors.toml`):
 
@@ -189,7 +200,8 @@ cmd/jury/      CLI (cobra + fang): commands, lipgloss styling, bubbletea tui
 core/          registry · paths · material validation · run files · shuffle ·
                instruction plan · read-only command construction · dispatch ·
                scoring · dashboard aggregation   (pure, unit-tested)
-workflows/     jury.js — the Claude Code orchestration (install to ~/.claude/workflows/)
+plugin/        the Claude Code plugin: commands/jury.md + workflows/jury.js
+scripts/       install.sh — release-binary installer
 ```
 
 Subcommands (most are called *by* the workflow, not you):

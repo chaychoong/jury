@@ -14,10 +14,12 @@ The system deliberately splits across two runtimes — keep the boundary intact:
 - **This Go binary (`jury`)** owns everything stateful and security-sensitive:
   the juror registry, the slot shuffle/anonymization, read-only CLI dispatch,
   run files, scoring, and the `tui` dashboard.
-- **A Claude Code dynamic workflow** (`workflows/jury.js`, installed to
-  `~/.claude/workflows/`) owns the parallel fan-out and the foreman synthesis (a
-  model call). Workflows cannot touch the filesystem or take human input mid-run,
-  which is exactly why orchestration delegates all stateful work to this binary.
+- **A Claude Code dynamic workflow** (`plugin/workflows/jury.js`) owns the
+  parallel fan-out and the foreman synthesis (a model call). It ships as a Claude
+  Code plugin (see `plugin/`): the `/jury` command invokes the bundled workflow
+  via the Workflow tool. Workflows cannot touch the filesystem or take human input
+  mid-run, which is exactly why orchestration delegates all stateful work to this
+  binary.
 
 ## Layout
 
@@ -28,8 +30,11 @@ The system deliberately splits across two runtimes — keep the boundary intact:
   `shuffle.go`, `plan.go` (`start-run` → instruction plan), `command.go`
   (read-only argv construction), `dispatch.go` (`run-juror`), `score.go` (JSONL
   log), `aggregate.go` (dashboard stats).
-- `workflows/jury.js` — the Claude Code orchestration; reference example, install
-  to `~/.claude/workflows/jury.js`.
+- `plugin/` — the Claude Code plugin: `commands/jury.md` (the `/jury` entry
+  point), `workflows/jury.js` (the orchestration, invoked via the Workflow tool),
+  and `.claude-plugin/plugin.json`. The repo root is also a single-plugin
+  marketplace (`.claude-plugin/marketplace.json`).
+- `scripts/install.sh` — release-binary installer used by the README quickstart.
 
 ## Build / test
 

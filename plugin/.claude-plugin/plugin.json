@@ -1,0 +1,12 @@
+{
+  "name": "jury",
+  "description": "Multi-model adversarial review. Independent model families review the same material in parallel behind anonymized slots; a foreman synthesizes one blind verdict; a blind scorer rates each juror 0-3 over time. Works on code, designs, research claims, plans, or arguments. Drives the `jury` binary, which must be installed on PATH.",
+  "author": {
+    "name": "Chay Choong",
+    "email": "hi@chay.dev"
+  },
+  "homepage": "https://github.com/chaychoong/jury",
+  "repository": "https://github.com/chaychoong/jury",
+  "license": "MPL-2.0",
+  "keywords": ["review", "adversarial", "multi-model", "code-review", "jury"]
+}

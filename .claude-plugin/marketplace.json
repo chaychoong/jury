@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "jury",
+  "description": "Multi-model adversarial review tool for Claude Code.",
+  "owner": {
+    "name": "Chay Choong",
+    "email": "hi@chay.dev"
+  },
+  "plugins": [
+    {
+      "name": "jury",
+      "description": "Multi-model adversarial review: independent model families review the same material in parallel behind anonymized slots, a foreman synthesizes one blind verdict, and a blind scorer rates each juror 0-3 over time.",
+      "source": "./plugin",
+      "category": "development",
+      "homepage": "https://github.com/chaychoong/jury"
+    }
+  ]
+}

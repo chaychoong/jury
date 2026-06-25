@@ -14,11 +14,12 @@ export const meta = {
   ],
 }
 
-// Paths assume the standard install: the `jury` binary at ~/.local/bin/jury and
-// state under ~/.claude. `~` in shell commands is expanded by the agent's shell;
-// the capture agent expands `~` when writing the material file. Adjust to your
-// layout (and make your Claude Code permission rule match the path used here).
-const JURY = '~/.local/bin/jury'
+// The `jury` binary is invoked by bare name, so it must be on PATH (any of the
+// documented installs — script, Homebrew, or `go install` — puts it there) and
+// allowed via a `Bash(jury:*)` rule in your Claude Code settings. State lives
+// under ~/.claude; `~` in shell commands is expanded by the agent's shell, and
+// the capture agent expands `~` when writing the material file.
+const JURY = 'jury'
 
 // Deterministic, non-LLM-chosen material path under an allowed material root
 // (~/.claude/.jury-runs is whitelisted by the binary's ValidateMaterial).

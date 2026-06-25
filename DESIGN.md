@@ -178,6 +178,37 @@ something a shell parses.
 
 ---
 
+## 9. Packaging: a plugin that can't ship its own workflow
+
+`jury` is distributed as a Claude Code plugin (`plugin/`) plus a separately
+installed binary. Two platform constraints shaped how:
+
+- **A plugin cannot register a dynamic workflow as a `/name` command, nor
+  auto-install one into `~/.claude/workflows/`.** There is no `workflows` key in
+  `plugin.json`, and that directory is reserved for user/project-saved workflows.
+  So we use the pattern Anthropic's own `code-modernization` plugin uses: the
+  workflow ships *inside* the plugin (`plugin/workflows/jury.js`) and a thin
+  markdown command (`plugin/commands/jury.md`) invokes it by path via the Workflow
+  tool (`scriptPath: "${CLAUDE_PLUGIN_ROOT}/workflows/jury.js"`), with a markdown
+  fallback for builds predating the Workflow tool. This is sanctioned-by-example
+  rather than by spec, so it could change; if a `workflows` plugin component
+  lands, the command wrapper collapses into a declaration.
+- **A plugin cannot install the native binary**, so the binary is installed
+  separately (script / Homebrew / `go install`) and the workflow calls it by bare
+  name (`jury`), which is why it must be on PATH.
+
+**Why we don't ship an auto-approve permission hook.** A plugin *could* bundle a
+`PermissionRequest` hook that silently auto-approves `Bash(jury:*)`, so `/jury`
+would work with zero setup. We deliberately don't. `jury`'s whole posture is that
+the user stays in control of what runs on their machine — read-only dispatch,
+validated material paths, an explicit registry. A plugin that grants itself shell
+access on install contradicts that, and worse, normalizes accepting plugins that
+self-authorize shell commands. The binary is read-only by construction so the
+concrete risk is low, but the principle is consent: we ask the user to add one
+explicit `Bash(jury:*)` rule rather than granting it for them.
+
+---
+
 ## Non-goals / deferred
 
 - **Standalone (non-Claude-Code) orchestration** — possible (scope C), reuses this

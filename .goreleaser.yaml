@@ -14,28 +14,44 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w -X main.version={{ .Version }}
+    # Unix-only: the advisory file locking in core/flock.go uses flock(2), which
+    # has no Windows equivalent. Linux and macOS, amd64 and arm64.
     goos:
       - linux
       - darwin
-      - windows
     goarch:
       - amd64
       - arm64
-    ignore:
-      # windows/arm64 is uncommon; drop it for a cleaner matrix.
-      - goos: windows
-        goarch: arm64
 
 archives:
   - id: jury
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
-    format_overrides:
-      - goos: windows
-        formats: [zip]
     files:
       - README.md
       - LICENSE
+
+homebrew_casks:
+  - name: jury
+    binaries:
+      - jury
+    directory: Casks
+    homepage: "https://github.com/chaychoong/jury"
+    description: "Multi-model adversarial review tool"
+    # Don't publish a cask for snapshots or pre-releases.
+    skip_upload: auto
+    repository:
+      owner: chaychoong
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    # The release binaries are unsigned; strip the quarantine attribute on
+    # install so macOS Gatekeeper doesn't block the first run.
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/jury"]
+          end
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
