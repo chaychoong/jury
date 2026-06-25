@@ -11,62 +11,6 @@ plan, or a plain question.
 
 ---
 
-## Why
-
-A good reviewer catches what the author missed. But a *single* reviewer — even a
-strong model — has its own blind spots, and if it's from the same family as the
-author (or as your default assistant), those blind spots **correlate**: it tends
-to bless exactly the mistakes the author would. You get a confident review that
-quietly agrees with the bug.
-
-`jury` attacks that with **decorrelation**:
-
-- **Model diversity.** GPT, Claude, GLM, MiniMax, and Kimi miss *different*
-  things. Run them as independent jurors and the union of their findings covers
-  far more than any one — including the strongest one — would alone.
-- **Blind synthesis.** The foreman that merges the verdicts never learns which
-  model produced which finding (jurors are shuffled into anonymous slots each
-  run). It judges findings on evidence, not on "trust the big model."
-- **Blind, independent scoring.** After each run a separate judge rates every
-  juror 0–3 against reality — also blind to identity — and appends it to a log.
-  The result is a *data-driven* panel: you can see which models consistently
-  catch real bugs and which just add noise, instead of guessing.
-
-It's the tool for the moment when correctness matters more than speed — before
-merging a non-trivial change, or pressure-testing a design or claim you're about
-to commit to.
-
----
-
-## How it works
-
-```
-/jury <scope>
-  capture     an agent turns the scope into concrete review material
-  start-run   the jury binary shuffles the registry into anonymous slots 0..N
-  jury        each slot runs in parallel, blind — a CLI juror or a native one
-  verdict     the foreman synthesizes one slot-attributed, severity-ranked verdict
-  triage+score a blind judge checks findings vs reality, scores each slot 0–3, logs it
-```
-
-Two runtimes cooperate:
-
-- **The `jury` Go binary** owns everything stateful and security-sensitive: the
-  juror **registry**, the **shuffle/anonymization**, **read-only** CLI dispatch
-  (structured argv, no shell), the per-run files, **scoring**, and the dashboard.
-- **A Claude Code dynamic workflow** (`workflows/jury.js`) owns the parallel
-  fan-out and the foreman **synthesis**. It only ever sees opaque slot numbers —
-  the binary holds the slot→model mapping and reveals it only at score time.
-
-The jurors are **read-only by construction**: CLI jurors run with pinned
-read-only flags built as structured argv (never a shell); the native Claude juror
-runs with read-only tools.
-
-> Why it's built this way — decorrelated blind spots, the anonymization scheme,
-> the scoring philosophy — is in **[DESIGN.md](DESIGN.md)**.
-
----
-
 ## Quickstart
 
 **Prerequisite:** [Claude Code](https://www.claude.com/product/claude-code) (for the `/jury` command). No Go toolchain needed unless you build from source.
@@ -193,6 +137,62 @@ Next `/jury` run includes it; the scoreboard starts tracking it once it's scored
 
 ---
 
+## Why
+
+A good reviewer catches what the author missed. But a *single* reviewer — even a
+strong model — has its own blind spots, and if it's from the same family as the
+author (or as your default assistant), those blind spots **correlate**: it tends
+to bless exactly the mistakes the author would. You get a confident review that
+quietly agrees with the bug.
+
+`jury` attacks that with **decorrelation**:
+
+- **Model diversity.** GPT, Claude, GLM, MiniMax, and Kimi miss *different*
+  things. Run them as independent jurors and the union of their findings covers
+  far more than any one — including the strongest one — would alone.
+- **Blind synthesis.** The foreman that merges the verdicts never learns which
+  model produced which finding (jurors are shuffled into anonymous slots each
+  run). It judges findings on evidence, not on "trust the big model."
+- **Blind, independent scoring.** After each run a separate judge rates every
+  juror 0–3 against reality — also blind to identity — and appends it to a log.
+  The result is a *data-driven* panel: you can see which models consistently
+  catch real bugs and which just add noise, instead of guessing.
+
+It's the tool for the moment when correctness matters more than speed — before
+merging a non-trivial change, or pressure-testing a design or claim you're about
+to commit to.
+
+---
+
+## How it works
+
+```
+/jury <scope>
+  capture     an agent turns the scope into concrete review material
+  start-run   the jury binary shuffles the registry into anonymous slots 0..N
+  jury        each slot runs in parallel, blind — a CLI juror or a native one
+  verdict     the foreman synthesizes one slot-attributed, severity-ranked verdict
+  triage+score a blind judge checks findings vs reality, scores each slot 0–3, logs it
+```
+
+Two runtimes cooperate:
+
+- **The `jury` Go binary** owns everything stateful and security-sensitive: the
+  juror **registry**, the **shuffle/anonymization**, **read-only** CLI dispatch
+  (structured argv, no shell), the per-run files, **scoring**, and the dashboard.
+- **A Claude Code dynamic workflow** (`plugin/workflows/jury.js`) owns the parallel
+  fan-out and the foreman **synthesis**. It only ever sees opaque slot numbers —
+  the binary holds the slot→model mapping and reveals it only at score time.
+
+The jurors are **read-only by construction**: CLI jurors run with pinned
+read-only flags built as structured argv (never a shell); the native Claude juror
+runs with read-only tools.
+
+> Why it's built this way — decorrelated blind spots, the anonymization scheme,
+> the scoring philosophy — is in **[DESIGN.md](DESIGN.md)**.
+
+---
+
 ## Architecture reference
 
 ```
@@ -224,9 +224,9 @@ Runtime state (outside the repo): `~/.claude/jury/jurors.toml` (registry),
 ## Status & limitations
 
 Working end to end: registry-driven blind jurors, parallel fan-out, anonymized
-synthesis, blind 0–3 scoring, and the dashboard. Known gaps the jury found
-reviewing its own code (run-file write race, dispatch-time path revalidation,
-score-log atomicity for large records, a few CLI-hardening nits) are tracked in
-`AGENTS.md` and not yet fixed. A standalone (non-Claude-Code) orchestrator and a
-web dashboard are possible future directions; today orchestration + synthesis run
-in the Claude Code workflow.
+synthesis, blind 0–3 scoring, and the dashboard. The concurrency and path-safety
+gaps an early self-review surfaced (run-file write race, dispatch-time
+revalidation, score-log atomicity, run-ID validation) are fixed and documented in
+`AGENTS.md`. `jury` targets Linux and macOS — the file locking is `flock(2)`-based.
+A standalone (non-Claude-Code) orchestrator and a web dashboard are possible
+future directions; today orchestration + synthesis run in the Claude Code workflow.
